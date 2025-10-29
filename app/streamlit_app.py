@@ -16,15 +16,35 @@ st.markdown("### Gain business insights from your retail dataset with detailed s
 # ----------------------------------------------------
 @st.cache_data
 def load_data():
-    df = pd.read_csv(r"C:\Users\HP\SmartRetailBI\data\processed\powerbi_dataset.csv")
-    df["Order Date"] = pd.to_datetime(df["Order Date"])
-    df["Ship Date"] = pd.to_datetime(df["Ship Date"])
+    # Automatically detect dataset path
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(base_dir, "..", "data", "processed", "powerbi_dataset.csv")
+
+    # ✅ Handle missing file safely
+    if not os.path.exists(data_path):
+        st.error(f"❌ Dataset not found at: {data_path}")
+        st.info("Please place your dataset in: data/processed/powerbi_dataset.csv")
+        st.stop()
+
+    # ✅ Read the dataset
+    df = pd.read_csv(data_path)
+
+    # ✅ Convert to datetime
+    df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
+    df["Ship Date"] = pd.to_datetime(df["Ship Date"], errors="coerce")
+
+    # ✅ Create new time-based features
     df["Order Month"] = df["Order Date"].dt.month_name()
     df["Order Day"] = df["Order Date"].dt.day_name()
     df["Year"] = df["Order Date"].dt.year
-    return df
 
-df = load_data()
+    # ✅ Ensure numerical columns exist and fill missing values
+    for col in ["Sales", "Profit"]:
+        if col not in df.columns:
+            df[col] = 0
+    df.fillna(0, inplace=True)
+
+    return df
 
 # ----------------------------------------------------
 # 🔍 Filters
